@@ -33,4 +33,10 @@ public class Url {
     @CreatedDate
     private LocalDateTime createdAt;
 
+    public Url(String shortUrl, String originalUrl, LocalDateTime expirationAt) {
+        this.shortUrl = shortUrl;
+        this.originalUrl = originalUrl;
+        this.expirationAt = expirationAt;
+    }
+
 }
