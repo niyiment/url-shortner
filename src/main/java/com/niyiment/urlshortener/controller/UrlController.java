@@ -26,16 +26,16 @@ public class UrlController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    @GetMapping("/{shortUrl}")
-    public RedirectView redirectToOriginalUrl(@PathVariable("shortUrl") String shortUrl) {
-        String originalUrl = urlService.getOriginalUrl(shortUrl);
+    @GetMapping("/{shortCode}")
+    public RedirectView redirectToOriginalUrl(@PathVariable("shortCode") String shortCode) {
+        String originalUrl = urlService.getOriginalUrl(shortCode);
 
         return new RedirectView(originalUrl);
     }
 
-    @DeleteMapping("/{shortUrl}")
-    public ResponseEntity<Void> deleteUrl(@PathVariable("shortUrl") String shortUrl) {
-        urlService.deleteUrl(shortUrl);
+    @DeleteMapping("/{shortCode}")
+    public ResponseEntity<Void> deleteUrl(@PathVariable("shortCode") String shortCode) {
+        urlService.deleteUrl(shortCode);
 
         return ResponseEntity.noContent().build();
     }

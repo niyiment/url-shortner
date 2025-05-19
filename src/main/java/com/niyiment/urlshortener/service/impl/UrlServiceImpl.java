@@ -2,6 +2,7 @@ package com.niyiment.urlshortener.service.impl;
 
 import com.niyiment.urlshortener.dto.UrlCreationRequest;
 import com.niyiment.urlshortener.dto.UrlResponse;
+import com.niyiment.urlshortener.exception.UrlNotFoundException;
 import com.niyiment.urlshortener.model.Url;
 import com.niyiment.urlshortener.repository.UrlRepository;
 import com.niyiment.urlshortener.service.UrlService;
@@ -15,6 +16,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -32,24 +34,21 @@ public class UrlServiceImpl implements UrlService {
     @Override
     @Transactional
     public UrlResponse createShortUrl(UrlCreationRequest request) {
-        String shortUrl;
-
-        if (request.customAlias() != null && !request.customAlias().isEmpty()) {
-            Optional<Url> existingUrl = urlRepository.findByShortUrl(request.customAlias());
-            if (existingUrl.isPresent()) {
-                throw new IllegalArgumentException("Custom alias already exists");
-            }
-            shortUrl = request.customAlias();
-        } else {
-            Url url = new Url(null, request.originUrl(),request.expiresAt());
-            url = urlRepository.save(url);
-
-            shortUrl = base62Converter.encode(url.getId());
-            url.setShortUrl(shortUrl);
-            url = urlRepository.save(url);
+        if (!isValidUrl(request.originalUrl())) {
+            throw new IllegalArgumentException("Invalid URL");
         }
 
-        Url savedUrl = urlRepository.findByShortUrl(shortUrl)
+        String shortCode = determineShortCode(request);
+        LocalDateTime expiresAt = request.expiresAt() != null ?
+                request.expiresAt() : LocalDateTime.now().plusDays(7);
+
+        Url url = new Url("", request.originalUrl(),request.expiresAt());
+        url.setShortCode(shortCode);
+        url.setExpiresAt(expiresAt);
+        url.setCreatedAt(LocalDateTime.now());
+        urlRepository.save(url);
+
+        Url savedUrl = urlRepository.findByShortCode(shortCode)
                 .orElseThrow(() -> new RuntimeException("Error creating short URL"));
 
         return convertToUrlResponse(savedUrl);
@@ -59,10 +58,10 @@ public class UrlServiceImpl implements UrlService {
     @Cacheable(value = "urls", key = "#shortUrl")
     @Transactional
     public String getOriginalUrl(String shortUrl) {
-        Url url = urlRepository.findByShortUrl(shortUrl)
-                .orElseThrow(() -> new RuntimeException("URL not found"));
+        Url url = urlRepository.findByShortCode(shortUrl)
+                .orElseThrow(() -> new UrlNotFoundException("URL not found"));
 
-        if (url.getExpirationAt().isAfter(LocalDateTime.now())) {
+        if (url.getExpiresAt().isAfter(LocalDateTime.now())) {
             urlRepository.incrementAccessCount(url.getId());
             return url.getOriginalUrl();
         }
@@ -76,8 +75,8 @@ public class UrlServiceImpl implements UrlService {
     @CacheEvict(value = "urls", key = "#shortUrl")
     @Transactional
     public void deleteUrl(String shortUrl) {
-        Url url = urlRepository.findByShortUrl(shortUrl)
-                .orElseThrow(() -> new RuntimeException("URL not found"));
+        Url url = urlRepository.findByShortCode(shortUrl)
+                .orElseThrow(() -> new UrlNotFoundException("URL not found"));
 
         urlRepository.delete(url);
     }
@@ -93,11 +92,36 @@ public class UrlServiceImpl implements UrlService {
 
     private UrlResponse convertToUrlResponse(Url url) {
         return UrlResponse.builder()
-                .shortUrl(BASE_URL + url.getShortUrl())
+                .shortUrl(BASE_URL + url.getShortCode())
                 .originalUrl(url.getOriginalUrl())
-                .expiresAt(url.getExpirationAt())
+                .expiresAt(url.getExpiresAt())
                 .createdAt(url.getCreatedAt())
                 .accessCount(url.getAccessCount())
                 .build();
+    }
+
+    private boolean isValidUrl(String originalUrl) {
+        try {
+            new URL(originalUrl).toURI();
+
+            return true;
+        } catch (Exception exception) {
+            return false;
+        }
+    }
+
+    private String determineShortCode(UrlCreationRequest request) {
+        if (request.customAlias() != null && !request.customAlias().isEmpty()) {
+            if (urlRepository.existsByShortCode(request.customAlias())) {
+                throw new IllegalArgumentException("Custom alias already exists");
+            }
+            return request.customAlias();
+        }
+
+        String shortCode;
+        do {
+            shortCode = base62Converter.encode(System.currentTimeMillis() % 1000000);
+        } while (urlRepository.existsByShortCode(shortCode));
+        return shortCode;
     }
 }

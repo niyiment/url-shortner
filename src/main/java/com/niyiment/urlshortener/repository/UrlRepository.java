@@ -15,12 +15,15 @@ import java.util.Optional;
 
 @Repository
 public interface UrlRepository extends JpaRepository<Url, Long> {
-    Optional<Url> findByShortUrl(String shortUrl);
+    Optional<Url> findByShortCode(String shortCode);
+
+    boolean existsByShortCode(String shortCode);
 
     @Modifying
     @Transactional
     @Query("UPDATE Url u SET u.accessCount = u.accessCount + 1 WHERE u.id = :id")
     void incrementAccessCount(@Param("id") Long id);
 
+    @Query("SELECT u FROM Url u WHERE u.expiresAt < :now")
     List<Url> findExpiredUrls(LocalDateTime now);
 }
