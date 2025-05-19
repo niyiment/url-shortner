@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
 public record UrlCreationRequest(
         @NotBlank(message = "Origin URL is required")
         @Pattern(regexp = "^(https?|ftp)://.*$", message = "Origin URL must be a valid URL")
-        String originUrL,
+        String originUrl,
         LocalDateTime expiresAt,
         String customAlias
 ) {
