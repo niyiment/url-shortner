@@ -12,5 +12,7 @@ public interface UrlService {
 
     void deleteUrl(String shortUrl);
 
+    List<UrlResponse> getAllUrls();
+
     void cleanupExpiredUrls();
 }

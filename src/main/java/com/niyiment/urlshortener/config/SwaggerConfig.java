@@ -19,7 +19,6 @@ public class SwaggerConfig {
                         .version("v0.0.1")
                         .contact(new Contact()
                                 .name("Niyiment")
-                                .email("KX3Y9@example.com")
                                 .url("https://github.com/niyiment")
                         )
                 );

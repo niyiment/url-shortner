@@ -9,7 +9,6 @@ import com.niyiment.urlshortener.service.UrlService;
 import com.niyiment.urlshortener.util.Base62Converter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.hibernate.annotations.Cache;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -19,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.net.URL;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 
 @Slf4j
@@ -29,7 +27,7 @@ public class UrlServiceImpl implements UrlService {
     private final UrlRepository urlRepository;
     private final Base62Converter base62Converter;
 
-    private static final String BASE_URL = "http://short.url/";
+    private static final String BASE_URL = "http://localhost:8888/api/urls/";
 
     @Override
     @Transactional
@@ -79,6 +77,11 @@ public class UrlServiceImpl implements UrlService {
                 .orElseThrow(() -> new UrlNotFoundException("URL not found"));
 
         urlRepository.delete(url);
+    }
+
+    @Override
+    public List<UrlResponse> getAllUrls() {
+        return urlRepository.findAll().stream().map(this::convertToUrlResponse).toList();
     }
 
     @Override

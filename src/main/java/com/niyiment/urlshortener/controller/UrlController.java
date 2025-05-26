@@ -11,12 +11,21 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
 
+import java.util.List;
+
 
 @RestController
 @RequestMapping(value = "/api/urls")
 @RequiredArgsConstructor
 public class UrlController {
     private final UrlService urlService;
+
+    @GetMapping
+    public ResponseEntity<List<UrlResponse>> getAllUrls() {
+        List<UrlResponse> urls = urlService.getAllUrls();
+
+        return new ResponseEntity<>(urls, HttpStatus.OK);
+    }
 
     @PostMapping
     public ResponseEntity<UrlResponse> createShortUrl(
